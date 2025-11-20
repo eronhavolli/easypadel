@@ -63,7 +63,7 @@ export default function ReservationsScreen() {
     })();
   }, [user]);
 
-  // Petite fonction pour retrouver le nom du terrain
+  // Fonction pour retrouver le nom du terrain
   function getTerrainName(terrainId: string) {
     return terrainsMap[terrainId] ?? terrainId;
   }

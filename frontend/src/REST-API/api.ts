@@ -35,7 +35,7 @@ export type Terrain = { _id: string; nom: string; dispo?: boolean };
 export type Creneau = { id: string; nom: string; dispo: boolean; heure: string };
 export type Reservation = { _id: string; terrainId: string; date: string; heure: string };
 
-/** ---- API calls ---- */
+/** ---- API appels ---- */
 
 /** Login : envoie username/password.
  */
@@ -54,7 +54,7 @@ export async function getTerrains() {
   return r.data as Terrain[];
 }
 
-/** MVP côté backend utilise /api/creneaux */
+/** MVP côté backend  /api/creneaux */
 export async function getSlots(terrainId: string, date: string, heure?: string) {
   const r = await api.get(`/creneaux`, { params: { terrainId, date, heure } });
   return r.data as Creneau[];

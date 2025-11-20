@@ -38,7 +38,7 @@ router.post(
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      // 1) Est-ce que ce user a déjà réservé ce créneau ?
+      // 1) Est-ce que ce USER a déjà réservé ce créneau ?
       const userReservation = await Reservation.findOne({
         terrainId,
         date,
