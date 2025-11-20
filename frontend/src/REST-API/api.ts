@@ -54,7 +54,7 @@ export async function getTerrains() {
   return r.data as Terrain[];
 }
 
-/** Ton MVP côté backend utilise /api/creneaux */
+/** MVP côté backend utilise /api/creneaux */
 export async function getSlots(terrainId: string, date: string, heure?: string) {
   const r = await api.get(`/creneaux`, { params: { terrainId, date, heure } });
   return r.data as Creneau[];
