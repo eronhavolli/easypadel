@@ -1,0 +1,36 @@
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: easypadel-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: easypadel-api
+    depends_on:
+      - mongo
+    env_file:
+      - ./backend/.env
+    ports:
+      - "4000:4000"
+    # 👇 deux options pour garantir le montage, choisis UNE:
+    # (A) si tu es sur Ubuntu/Debian :
+    volumes:
+      - "${PWD}/backend:/app"
+      - /app/node_modules
+    # (B) si tu es sur Fedora/SELinux (sinon erreurs de permissions) :
+    # volumes:
+    #   - "${PWD}/backend:/app:Z"
+    #   - /app/node_modules
+    command: npm start 
+    restart: unless-stopped
+
+volumes:
+  mongo_data: {}

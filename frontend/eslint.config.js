@@ -12,7 +12,7 @@ module.exports = defineConfig([
     },
     rules: {
       "prettier/prettier": "error", // Active Prettier comme règle ESLint
-      "no-unused-vars": "warn",     // Avertit si tu déclares une variable non utilisée
+      "no-unused-vars": "warn",     // Avertit si on déclares une variable non utilisée
     },
   },
 ]);
