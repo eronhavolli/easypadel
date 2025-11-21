@@ -16,20 +16,38 @@ import { useAuth } from "../auth";
 
 export default function LoginScreen({ navigation }: any) {
   const { setUser } = useAuth();
-  const [username, setUsername] = useState("");
+
+  const [email, setEmail] = useState("");      //  email au lieu de username
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit() {
+    if (!email || !password) {
+      Alert.alert("Erreur", "Merci de renseigner l'e-mail et le mot de passe.");
+      return;
+    }
+
     try {
-      const data = await login(username, password);
+      setLoading(true);
+
+      //  appelle l'API avec email + password
+      const data = await login(email, password);
+
+      // on stocke l'utilisateur dans le contexte
       setUser({
         userId: data.userId,
-        username: data.username,
+        username: data.username, // affiché dans HomeScreen
         role: data.role,
+        // email: data.email, // si tu veux aussi le garder dans le contexte
       });
+
       navigation.replace("Home");
-    } catch (err: any) {
-      Alert.alert("Erreur", err?.response?.data?.message ?? "Connexion impossible.");
+    } catch (e: any) {
+      const msg =
+        e?.response?.data?.message ?? "Impossible de se connecter.";
+      Alert.alert("Erreur", msg);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -51,11 +69,11 @@ export default function LoginScreen({ navigation }: any) {
       {/* Zone de formulaire */}
       <View style={styles.form}>
         <TextInput
-          placeholder="Identifiant"
+          placeholder="Adresse e-mail"
           placeholderTextColor="#999"
           style={styles.input}
-          value={username}
-          onChangeText={setUsername}
+          value={email}
+          onChangeText={setEmail}
         />
 
         <TextInput

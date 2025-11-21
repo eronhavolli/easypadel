@@ -39,15 +39,19 @@ export type Reservation = { _id: string; terrainId: string; date: string; heure:
 
 /** Login : envoie username/password.
  */
-export async function login(username: string, password: string) {
-  const res = await api.post("/users/login", {
-    username,
-    password,
-    identifiant: username,   
-    motdepasse: password,    
-  });
-  return res.data as { message: string; userId: string; username: string; role: "user" | "admin" };
+export async function login(email: string, password: string) {
+  const res = await api.post("/users/login", { email, password });
+  return res.data as {
+    message: string;
+    userId: string;
+    username: string;
+    role: "user" | "admin";
+    email: string;
+  };
 }
+
+
+
 
 export async function getTerrains() {
   const r = await api.get("/terrains");

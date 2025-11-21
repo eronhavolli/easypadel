@@ -1,9 +1,49 @@
-const express = require('express');
+const express = require("express");
+const bcrypt = require("bcryptjs");
 const router = express.Router();
-const User = require('../models/User');
+
+const User = require("../models/User");
 
 // POST /api/users/login
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Champs manquants" });
+    }
+
+    // Vérifier si user existe
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Utilisateur non trouvé" });
+    }
+
+    // Vérifier password avec passwordHash
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      return res.status(401).json({ message: "Mot de passe incorrect" });
+    }
+
+    // Succès
+    res.json({
+      message: "Connexion réussie",
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    });
+
+  } catch (err) {
+    console.error("Erreur login :", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+module.exports = router;
+
+// POST /api/users/login
+/**router.post('/login', async (req, res) => {
   try {
     // Accepte les deux formats d'entrée pour éviter toute confusion
     const username = (req.body.username || req.body.identifiant || '').trim();
@@ -30,7 +70,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-module.exports = router;
+*/
 
 /**const express = require('express');
 const { body, validationResult } = require('express-validator');
