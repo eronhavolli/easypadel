@@ -1,46 +1,70 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const router = express.Router();
-
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-// POST /api/users/login
+const router = express.Router();
+
+const SECRET = process.env.JWT_SECRET;
+
+/**
+ * POST /api/users/login
+ * body: { email, password }
+ * 200: { message, token, user: { userId, username, email, role } }
+ * 401: Identifiants invalides
+ */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log("LOGIN body:", req.body);
 
     if (!email || !password) {
       return res.status(400).json({ message: "Champs manquants" });
     }
 
-    // Vérifier si user existe
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).lean();
+    console.log("LOGIN user trouvé:", user?._id);
+
     if (!user) {
-      return res.status(401).json({ message: "Utilisateur non trouvé" });
+      return res.status(401).json({ message: "Identifiants invalides" });
     }
 
-    // Vérifier password avec passwordHash
-    const ok = await bcrypt.compare(password, user.passwordHash);
+    const ok = await bcrypt.compare(password, user.passwordHash || "");
+    console.log("LOGIN compare:", ok);
+
     if (!ok) {
-      return res.status(401).json({ message: "Mot de passe incorrect" });
+      return res.status(401).json({ message: "Identifiants invalides" });
     }
 
-    // Succès
-    res.json({
-      message: "Connexion réussie",
-      userId: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-    });
+    // Génération du token JWT avec userId + role
+    const token = jwt.sign(
+      {
+        userId: user._id.toString(),
+        role: user.role,
+      },
+      SECRET,
+      { expiresIn: "7d" }
+    );
 
-  } catch (err) {
-    console.error("Erreur login :", err);
-    res.status(500).json({ message: "Erreur serveur" });
+    return res.json({
+      message: "Connexion OK",
+      token,
+      user: {
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (e) {
+    console.error("Erreur login:", e);
+    return res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 module.exports = router;
+
+
 
 // POST /api/users/login
 /**router.post('/login', async (req, res) => {

@@ -1,13 +1,13 @@
 import axios from "axios";
 import { Platform } from "react-native";
 
-const LAN_IP = "10.29.251.183";
+const LAN_IP = "10.6.251.89"; 
 export const BASE_URL =
   Platform.OS === "web"
     ? "http://localhost:4000"
     : Platform.OS === "android"
-    ? "http://10.0.2.2:4000"      
-    : `http://${LAN_IP}:4000`;  
+    ? "http://10.0.2.2:4000"
+    : `http://${LAN_IP}:4000`;
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -29,58 +29,91 @@ api.interceptors.response.use(
 );
 
 /** ---- Types ---- */
-export type User = { _id: string; username: string; role: "user" | "admin" };
+export type UserRole = "user" | "admin";
+
+export type UserInfo = {
+  userId: string;
+  username: string;
+  email: string;
+  role: UserRole;
+};
+
 export type Terrain = { _id: string; nom: string; dispo?: boolean };
-//export type Creneau = { id: string; nom: string; dispo: boolean };
-export type Creneau = { id: string; nom: string; dispo: boolean; heure: string };
-export type Reservation = { _id: string; terrainId: string; date: string; heure: string };
+export type Creneau = { id: string; nom: string; dispo: boolean };
+export type Reservation = {
+  _id: string;
+  terrainId: string;
+  date: string;
+  heure: string;
+};
 
-/** ---- API appels ---- */
+/** ---- API calls ---- */
 
-/** Login : envoie username/password.
+/**
+ * Login : email + password
+ * Retour backend:
+ * {
+ *   message: string;
+ *   token: string;
+ *   user: { userId, username, email, role }
+ * }
  */
 export async function login(email: string, password: string) {
   const res = await api.post("/users/login", { email, password });
   return res.data as {
     message: string;
-    userId: string;
-    username: string;
-    role: "user" | "admin";
-    email: string;
+    token: string;
+    user: UserInfo;
   };
 }
-
-
-
 
 export async function getTerrains() {
   const r = await api.get("/terrains");
   return r.data as Terrain[];
 }
 
-/** MVP côté backend  /api/creneaux */
+/** Créneaux */
 export async function getSlots(terrainId: string, date: string, heure?: string) {
   const r = await api.get(`/creneaux`, { params: { terrainId, date, heure } });
   return r.data as Creneau[];
 }
 
+/** Réservation d'un créneau */
 export async function createReservation(payload: {
-  terrainId: string; userId: string; date: string; heure: string;
+  terrainId: string;
+  userId: string;
+  date: string;
+  heure: string;
 }) {
   const r = await api.post("/reservations", payload);
   return r.data as { message: string; reservationId: string };
 }
 
+/** Mes réservations */
 export async function getReservationsByUser(userId: string) {
   const r = await api.get("/reservations", { params: { userId } });
   return r.data as Reservation[];
 }
 
-/** ADMIN */
-export async function getAllReservations() {
-  const r = await api.get("/reservations/all");
-  return r.data as Array<{ _id: string; user: string; terrain: string; date: string; heure: string }>;
+/** ADMIN : toutes les réservations
+ * On passe le token en paramètre pour mettre l'Authorization header
+ */
+export async function getAllReservations(token: string) {
+  const r = await api.get("/reservations/all", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return r.data as Array<{
+    _id: string;
+    user: string;
+    terrain: string;
+    date: string;
+    heure: string;
+  }>;
 }
+
 /**import axios from "axios";
 import { Platform } from "react-native";
 

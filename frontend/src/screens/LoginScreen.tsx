@@ -17,7 +17,7 @@ import { useAuth } from "../auth";
 export default function LoginScreen({ navigation }: any) {
   const { setUser } = useAuth();
 
-  const [email, setEmail] = useState("");      //  email au lieu de username
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,15 +30,16 @@ export default function LoginScreen({ navigation }: any) {
     try {
       setLoading(true);
 
-      //  appelle l'API avec email + password
-      const data = await login(email, password);
+      //l’API doit renvoyer { token, user }
+      const res = await login(email, password);
+      const { token, user } = res;
 
-      // on stocke l'utilisateur dans le contexte
       setUser({
-        userId: data.userId,
-        username: data.username, // affiché dans HomeScreen
-        role: data.role,
-        // email: data.email, // si tu veux aussi le garder dans le contexte
+        token,
+        userId: user.userId,
+        username: user.username,
+        email: user.email,
+        role: user.role,
       });
 
       navigation.replace("Home");
@@ -56,130 +57,99 @@ export default function LoginScreen({ navigation }: any) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* Logo */}
-      <Image
-        source={require("../../assets/Logo-easypadel.png")}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      <View style={styles.inner}>
+        {/* Logo */}
+        <Image
+          source={require("../../assets/Logo-easypadel.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
-      {/* Titre */}
-      <Text style={styles.title}>EasyPadel</Text>
+        {/* Titre */}
+        <Text style={styles.title}>EasyPadel</Text>
 
-      {/* Zone de formulaire */}
-      <View style={styles.form}>
+        {/* Champs de formulaire */}
         <TextInput
+          style={styles.input}
           placeholder="Adresse e-mail"
           placeholderTextColor="#999"
-          style={styles.input}
+          keyboardType="email-address"
+          autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
         />
 
         <TextInput
+          style={styles.input}
           placeholder="Mot de passe"
           placeholderTextColor="#999"
           secureTextEntry
-          style={styles.input}
           value={password}
           onChangeText={setPassword}
         />
 
-        {/* Bouton login */}
-        <TouchableOpacity style={styles.button} onPress={onSubmit}>
-          <Text style={styles.buttonText}>SE CONNECTER</Text>
-        </TouchableOpacity>
-
-        {/* Lien inscription (non fonctionnel ici) */}
-        <TouchableOpacity onPress={() => Alert.alert("Pas encore implémenté")}>
-          <Text style={styles.register}>Pas de compte ? S’inscrire</Text>
+        {/* Bouton de connexion */}
+        <TouchableOpacity
+          style={[styles.button, loading && { opacity: 0.7 }]}
+          onPress={onSubmit}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? "Connexion..." : "Se connecter"}
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
+// ---------------- STYLES ----------------
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffffff",
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
+    alignItems: "center",
+  },
+  inner: {
+    width: "100%",
+    paddingHorizontal: 40,
+    alignItems: "center",
   },
   logo: {
-    width: 120,
+    width: 150,
     height: 120,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#1a1a1a",
-    marginBottom: 60,
-  },
-  form: {
-    width: "100%",
-    alignItems: "center",
+    color: "#000000",
+    marginBottom: 80,
+    letterSpacing: 1,
   },
   input: {
     width: "100%",
-    backgroundColor: "white",
+    backgroundColor: "#F3F4F6",
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#E5E7EB",
     marginBottom: 15,
     fontSize: 16,
   },
   button: {
-    backgroundColor: "#0d6efd",
+    backgroundColor: "#2563EB",
     width: "100%",
-    padding: 15,
+    paddingVertical: 15,
     borderRadius: 12,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 60,
   },
   buttonText: {
-    color: "white",
+    color: "#ffffff",
     fontSize: 17,
     fontWeight: "600",
   },
-  register: {
-    marginTop: 18,
-    color: "#0d6efd",
-    fontSize: 14,
-  },
 });
-
-
-/*import React, { useState } from "react";
-import { Alert, Button, TextInput, View } from "react-native";
-import { login } from "../REST-API/api";
-import { useAuth } from "../auth";
-
-export default function LoginScreen({ navigation }: any) {
-  const { setUser } = useAuth();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  async function onSubmit() {
-    try {
-      const data = await login(username, password); // username/password uniquement
-      setUser({ userId: data.userId, username: data.username, role: data.role });
-      navigation.replace("Home");
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || "Connexion impossible";
-      Alert.alert("Erreur", msg);
-    }
-  }
-
-  return (
-    <View style={{ padding: 16, gap: 12 }}>
-      <TextInput placeholder="Username" value={username} onChangeText={setUsername} />
-      <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-      <Button title="Se connecter" onPress={onSubmit} />
-    </View>
-  );
-}
-*/

@@ -25,7 +25,6 @@ services:
     volumes:
       - "${PWD}/backend:/app"
       - /app/node_modules
-    # (B) si tu es sur Fedora/SELinux (sinon erreurs de permissions) :
     # volumes:
     #   - "${PWD}/backend:/app:Z"
     #   - /app/node_modules

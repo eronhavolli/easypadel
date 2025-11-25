@@ -1,7 +1,6 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React from "react";
 import {
-  Button,
   Image,
   StyleSheet,
   Text,
@@ -16,59 +15,66 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 export default function HomeScreen({ navigation }: Props) {
   const { user, setUser } = useAuth();
 
+  function handleLogout() {
+    // On efface l'utilisateur du contexte
+    setUser(null);
+    // On revient proprement sur l'écran de Login
+    navigation.replace("Login");
+  }
+
   return (
     <View style={styles.container}>
-      {/* LOGO + TITRE */}
-      <View style={styles.header}>
-        <Image
-          source={require("../../assets/Logo-easypadel.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.appName}>EasyPadel</Text>
-        <Text style={styles.welcome}>
-          Bonjour <Text style={{ fontWeight: "700" }}>{user?.username}</Text>
-        </Text>
-      </View>
+      {/* CONTENU PRINCIPAL (logo + boutons bleus) */}
+      <View style={styles.main}>
+        {/* LOGO + TITRE */}
+        <View style={styles.header}>
+          <Image
+            source={require("../../assets/Logo-easypadel.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.appName}>EasyPadel</Text>
+          <Text style={styles.welcome}>
+            Bonjour <Text style={{ fontWeight: "700" }}>{user?.username}</Text>
+          </Text>
+        </View>
 
-      {/* CARTE AVEC LES ACTIONS */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}></Text> 
+        {/* CARTE AVEC LES ACTIONS */}
+        <View style={styles.card}>
+          {/* (Titre laissé vide pour garder design) */}
+          <Text style={styles.cardTitle}></Text>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate("Terrains")}
-        >
-          <Text style={styles.actionText}>Réserver un créneau</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate("Reservations")}
-        >
-          <Text style={styles.actionText}>Mes réservations</Text>
-        </TouchableOpacity>
-
-        {user?.role === "admin" && (
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate("AdminReservations")}
+            onPress={() => navigation.navigate("Terrains")}
           >
-            <Text style={styles.actionText}>
-              Toutes les réservations (Admin)
-            </Text>
+            <Text style={styles.actionText}>Réserver un créneau</Text>
           </TouchableOpacity>
-        )}
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate("Reservations")}
+          >
+            <Text style={styles.actionText}>Mes réservations</Text>
+          </TouchableOpacity>
+
+          {user?.role === "admin" && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("AdminReservations")}
+            >
+              <Text style={styles.actionText}>
+                Toutes les réservations (Admin)
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* BOUTON DECONNEXION */}
-      <View style={styles.logout}>
-        <Button
-          title="Se déconnecter"
-          color="crimson"
-          onPress={() => setUser(null)}
-        />
-      </View>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutText}>SE DÉCONNECTER</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -80,6 +86,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 30,
     paddingBottom: 16,
+  },
+  // (header + carte)
+  main: {
+    flex: 1,
   },
   header: {
     alignItems: "center",
@@ -128,57 +138,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
-  logout: {
-    marginTop: 280,
+  // bouton rouge en bas
+  logoutButton: {
+    marginTop: 16,
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 999,
+    backgroundColor: "crimson",
+    alignItems: "center",
+  },
+  logoutText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
-
-
-/**
-// src/screens/HomeScreen.tsx
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React from "react";
-import { Button, Text, View } from "react-native";
-import { RootStackParamList } from "../../App";
-import { useAuth } from "../auth";
-
-type Props = NativeStackScreenProps<RootStackParamList, "Home">;
-
-export default function HomeScreen({ navigation }: Props) {
-  const { user, setUser } = useAuth();
-
-  return (
-    <View style={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20 }}>Bonjour {user?.username}</Text>
-
-      {/* Aller à l'écran de réservation (Terrains & créneaux) }
-      <Button
-        title="Réserver un créneau"
-        onPress={() => navigation.navigate("Terrains")}
-      />
-
-      {/* Aller à l'écran "Mes réservations" }
-      <Button
-        title="Mes réservations"
-        onPress={() => navigation.navigate("Reservations")}
-      />
-
-      {/* Écran admin visible seulement si role === "admin" }
-      {user?.role === "admin" && (
-        <Button
-          title="Toutes les réservations (Admin)"
-          onPress={() => navigation.navigate("AdminReservations")}
-        />
-      )}
-
-      <View style={{ marginTop: 32 }}>
-        <Button
-          title="Se déconnecter"
-          color="crimson"
-          onPress={() => setUser(null)}
-        />
-      </View>
-    </View>
-  );
-}
-*/

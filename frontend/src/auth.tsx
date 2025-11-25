@@ -1,14 +1,30 @@
 import React, { createContext, useContext, useState } from "react";
+import { UserInfo } from "./REST-API/api";
 
-export type AuthUser = { userId: string; username: string; role: "user" | "admin" };
+export type AuthUser = UserInfo & {
+  token: string;
+};
 
-const AuthCtx = createContext<{ user: AuthUser | null; setUser: (u: AuthUser | null) => void; }>({
-  user: null, setUser: () => {}
+type AuthContextType = {
+  user: AuthUser | null;
+  setUser: (u: AuthUser | null) => void;
+};
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  setUser: () => {},
 });
 
-export const useAuth = () => useContext(AuthCtx);
-
-export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  return <AuthCtx.Provider value={{ user, setUser }}>{children}</AuthCtx.Provider>;
-};
+
+  return (
+    <AuthContext.Provider value={{ user, setUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}

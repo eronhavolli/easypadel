@@ -1,8 +1,9 @@
-const express = require('express');
-const { body, validationResult } = require('express-validator');
-const Reservation = require('../models/Reservation');
-const User = require('../models/User');
-const Terrain = require('../models/Terrain'); // 👈 pour le /all (admin)
+const express = require("express");
+const { body, validationResult } = require("express-validator");
+const Reservation = require("../models/Reservation");
+const User = require("../models/User");
+const Terrain = require("../models/Terrain");
+const { auth, adminOnly } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -17,17 +18,17 @@ const router = express.Router();
  * 500: Erreur serveur
  */
 router.post(
-  '/',
-  body('terrainId').isString().notEmpty(),
-  body('userId').isString().notEmpty(),
-  body('date').isString().notEmpty(),
-  body('heure').isString().notEmpty(),
+  "/",
+  body("terrainId").isString().notEmpty(),
+  body("userId").isString().notEmpty(),
+  body("date").isString().notEmpty(),
+  body("heure").isString().notEmpty(),
   async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        console.log('Validation errors =', errors.array());
-        return res.status(400).json({ message: 'Champs manquants' });
+        console.log("Validation errors =", errors.array());
+        return res.status(400).json({ message: "Champs manquants" });
       }
 
       const { terrainId, date, userId, heure } = req.body;
@@ -35,10 +36,10 @@ router.post(
       // 401 si l'utilisateur n'existe pas
       const userExists = await User.exists({ _id: userId });
       if (!userExists) {
-        return res.status(401).json({ message: 'Non authentifié' });
+        return res.status(401).json({ message: "Non authentifié" });
       }
 
-      // 1) Est-ce que ce USER a déjà réservé ce créneau ?
+      // 1) Est-ce que ce user a déjà réservé ce créneau ?
       const userReservation = await Reservation.findOne({
         terrainId,
         date,
@@ -49,90 +50,81 @@ router.post(
       if (userReservation) {
         return res
           .status(400)
-          .json({ message: 'Vous avez déjà réservé ce créneau' });
+          .json({ message: "Vous avez déjà réservé ce créneau" });
       }
 
-      // 2) Sinon : est-ce que le créneau est pris par quelqu'un d'autre 
+      // 2) Sinon : est-ce que le créneau est pris par quelqu'un d'autre ?
       const dup = await Reservation.findOne({ terrainId, date, heure }).lean();
       if (dup) {
-        return res.status(400).json({ message: 'Créneau déjà pris' });
+        return res.status(400).json({ message: "Créneau déjà pris" });
       }
 
       // 3) OK, on crée la réservation
       const r = await Reservation.create({ terrainId, date, userId, heure });
       return res
         .status(201)
-        .json({ message: 'Réservation OK', reservationId: r._id });
+        .json({ message: "Réservation OK", reservationId: r._id });
     } catch (e) {
       // Si index unique en base → code 11000
       if (e?.code === 11000) {
-        return res.status(400).json({ message: 'Créneau déjà pris' });
+        return res.status(400).json({ message: "Créneau déjà pris" });
       }
       console.error(e);
-      return res.status(500).json({ message: 'Erreur serveur' });
+      return res.status(500).json({ message: "Erreur serveur" });
     }
   }
 );
 
 /**
  * GET /api/reservations?userId=...
- * -> Mes réservations (pour l'écran "Mes réservations")
- * renvoie : [{ _id, terrainId, date, heure }, ...]
+ * -> Mes réservations (pour un utilisateur)
  */
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { userId } = req.query;
 
     if (!userId) {
-      return res
-        .status(400)
-        .json({ message: 'Paramètre userId obligatoire' });
+      return res.status(400).json({ message: "userId est obligatoire" });
     }
 
     const list = await Reservation.find({ userId }).lean();
 
-    const result = list.map((r) => ({
-      _id: r._id,
-      terrainId: String(r.terrainId),
-      date: r.date,
-      heure: r.heure,
-    }));
-
-    res.json(result);
-  } catch (err) {
-    console.error('Erreur GET /api/reservations :', err);
-    res.status(500).json({ message: 'Erreur serveur' });
+    return res.json(list);
+  } catch (e) {
+    console.error("Erreur GET /api/reservations:", e);
+    return res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 /**
  * GET /api/reservations/all
- * -> Vue admin : toutes les réservations
- * renvoie : [{ _id, user, terrain, date, heure }, ...]
+ * -> Réservé aux admins
+ * Retourne : [{ _id, user, terrain, date, heure }]
  */
-router.get('/all', async (_req, res) => {
+router.get("/all", auth, adminOnly, async (req, res) => {
   try {
     const list = await Reservation.find()
-      .populate('userId', 'username')     // nécessite que Reservation.userId ait ref: 'User'
-      .populate('terrainId', 'nom')       // nécessite que Reservation.terrainId ait ref: 'Terrain'
+      .populate("userId")
+      .populate("terrainId")
       .lean();
 
-    const result = list.map((r) => ({
+    const mapped = list.map((r) => ({
       _id: r._id,
-      user: r.userId?.username || String(r.userId),
-      terrain: r.terrainId?.nom || String(r.terrainId),
+      user: r.userId?.username || "Inconnu",
+      terrain: r.terrainId?.nom || "Inconnu",
       date: r.date,
       heure: r.heure,
     }));
 
-    res.json(result);
-  } catch (err) {
-    console.error('Erreur GET /api/reservations/all :', err);
-    res.status(500).json({ message: 'Erreur serveur' });
+    return res.json(mapped);
+  } catch (e) {
+    console.error("Erreur GET /api/reservations/all:", e);
+    return res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 module.exports = router;
+
 
 /**const express = require('express');
 const { body, validationResult } = require('express-validator');

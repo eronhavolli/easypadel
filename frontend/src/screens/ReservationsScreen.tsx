@@ -14,6 +14,7 @@ import {
   Terrain,
 } from "../REST-API/api";
 import { useAuth } from "../auth";
+import { syncReservations } from "../sync/reservationsSync";
 
 export default function ReservationsScreen() {
   const { user } = useAuth();
@@ -45,6 +46,10 @@ export default function ReservationsScreen() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
 
+      // d'abord → on essaie de synchroniser ce qu'on a en attente
+      await syncReservations(user.userId);
+
+      // ensuite → on récupère la vérité depuis le backend
       const list = await getReservationsByUser(user.userId);
       setReservations(list);
     } catch (e) {
@@ -140,6 +145,7 @@ export default function ReservationsScreen() {
     </View>
   );
 }
+
 
 /**import React, { useEffect, useMemo, useState } from "react";
 import { FlatList, Text, View } from "react-native";

@@ -14,6 +14,10 @@ import {
 
 import { createReservation, getTerrains, Terrain } from "../REST-API/api";
 import { useAuth } from "../auth";
+import {
+  addOfflineReservation,
+  syncReservations,
+} from "../sync/reservationsSync";
 
 // Créneaux horaires proposés (MVP)
 const HOURS = [
@@ -53,10 +57,7 @@ function TerrainItem({
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
-      style={[
-        styles.terrainCard,
-        selected && styles.terrainCardSelected,
-      ]}
+      style={[styles.terrainCard, selected && styles.terrainCardSelected]}
     >
       <Text style={styles.terrainName}>{nom}</Text>
     </TouchableOpacity>
@@ -141,6 +142,11 @@ export default function TerrainsScreen() {
 
     try {
       setLoadingReserve(true);
+
+      // 1) On essaie d'abord de synchroniser ce qu'on a en attente
+      await syncReservations(user.userId);
+
+      // 2) Puis on tente la réservation en ligne
       const res = await createReservation({
         terrainId,
         userId: user.userId,
@@ -152,11 +158,30 @@ export default function TerrainsScreen() {
         res?.message ||
         `Créneau réservé : ${selectedTerrain.nom} – ${dateStr} à ${selectedHour}`;
       showSuccess(msg);
+
+      // 3) Après une réservation OK, on re-synchronise au cas où
+      await syncReservations(user.userId);
     } catch (e: any) {
       console.log("Erreur réservation", e?.response || e);
-      const msg =
-        e?.response?.data?.message ?? "Impossible de réserver ce créneau.";
-      showError(msg);
+
+      const hasHttpStatus = e?.response?.status !== undefined;
+
+      if (!hasHttpStatus) {
+        // Erreur réseau → on enregistre hors-ligne
+        await addOfflineReservation(user.userId, {
+          terrainId,
+          date: dateStr,
+          heure: selectedHour,
+        });
+        showSuccess(
+          `Réservation enregistrée hors-ligne pour ${selectedTerrain.nom} – ${dateStr} à ${selectedHour}. Elle sera envoyée dès que tu auras du réseau.`
+        );
+      } else {
+        // Erreur "logique" renvoyée par l'API (créneau pris, déjà réservé, etc.)
+        const msg =
+          e?.response?.data?.message ?? "Impossible de réserver ce créneau.";
+        showError(msg);
+      }
     } finally {
       setLoadingReserve(false);
     }
@@ -431,6 +456,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
 
 /** 
 import DateTimePicker, {
