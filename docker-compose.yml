@@ -20,13 +20,9 @@ services:
       - ./backend/.env
     ports:
       - "4000:4000"
-    # 👇 deux options pour garantir le montage, choisis UNE:
-    # (A) si tu es sur Ubuntu/Debian :
-    volumes:
-      - "${PWD}/backend:/app"
-      - /app/node_modules
+    # Volumes pour le DEV (à commenter en PROD)
     # volumes:
-    #   - "${PWD}/backend:/app:Z"
+    #   - "${PWD}/backend:/app"
     #   - /app/node_modules
     command: npm start 
     restart: unless-stopped

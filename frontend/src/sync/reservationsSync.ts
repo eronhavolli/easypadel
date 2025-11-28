@@ -16,7 +16,7 @@ function pendingKey(userId: string) {
   return `PENDING_RES_${userId}`;
 }
 
-async function loadPending(userId: string): Promise<PendingOp[]> {
+export async function loadPending(userId: string): Promise<PendingOp[]> {
   const raw = await AsyncStorage.getItem(pendingKey(userId));
   if (!raw) return [];
   try {
@@ -31,23 +31,23 @@ async function savePending(userId: string, list: PendingOp[]) {
 }
 
 /**
- * Appelé quand on est OFFLINE → on stocke la réservation en local.
+ * Appelé quand on est en OFFLINE → on stocke la réservation en local
  */
 export async function addOfflineReservation(
   userId: string,
   payload: { terrainId: string; date: string; heure: string }
 ) {
-  const ops = await loadPending(userId);
-  ops.push({
+  const ops = await loadPending(userId); //On charge la liste des actions en attente
+  ops.push({                             //On ajoute la nouvelle réservation à CETTE liste
     id: `local-${Date.now()}`,
     type: "create",
     payload,
   });
-  await savePending(userId, ops);
+  await savePending(userId, ops);        //On sauvegarde cette liste 
 }
 
 /**
- * Essaie d'envoyer toutes les réservations stockées en local.
+ * Essaie d'envoyer toutes les réservations stockées en local
  * Appelé :
  *  - avant d'afficher "Mes réservations"
  *  - à chaque réservation réussie
@@ -59,14 +59,14 @@ export async function syncReservations(userId: string) {
     return;
   }
 
-  let ops = await loadPending(userId);
-  if (ops.length === 0) return;
+  let ops = await loadPending(userId); //On charge SEULEMENT les réservations en attente (let ops = liste locale))
+  if (ops.length === 0) return; //Si la liste est vide, on quitte
 
   console.log("SYNC: envoi des réservations hors-ligne:", ops.length);
 
   const remaining: PendingOp[] = [];
 
-  for (const op of ops) {
+  for (const op of ops) {       // On boucle sur chaque réservation en attente pour l'envoyer
     if (op.type === "create") {
       try {
         await createReservation({
@@ -78,13 +78,12 @@ export async function syncReservations(userId: string) {
         console.log("SYNC: réservation envoyée OK", op.id);
       } catch (e) {
         console.log("SYNC: échec pour", op.id, e);
-        // on la garde pour réessayer plus tard
         remaining.push(op);
       }
     }
   }
 
-  await savePending(userId, remaining);
+  await savePending(userId, remaining); //On sauvegarde la liste des réservations restantes
 
   if (remaining.length === 0) {
     console.log("SYNC: toutes les réservations hors-ligne ont été envoyées");

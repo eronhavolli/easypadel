@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 
+import NetInfo from "@react-native-community/netinfo";
 import {
   getReservationsByUser,
   getTerrains,
@@ -14,17 +15,18 @@ import {
   Terrain,
 } from "../REST-API/api";
 import { useAuth } from "../auth";
-import { syncReservations } from "../sync/reservationsSync";
+import { loadPending, syncReservations } from "../sync/reservationsSync";
 
 export default function ReservationsScreen() {
   const { user } = useAuth();
 
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  // On étend le type Reservation pour inclure l'info offline
+  const [reservations, setReservations] = useState<(Reservation & { _offline?: boolean })[]>([]);
   const [terrainsMap, setTerrainsMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Charge la map idTerrain -> nom
+  // Charge la map idTerrain : nom
   async function loadTerrains() {
     try {
       const terrains = await getTerrains();
@@ -46,12 +48,42 @@ export default function ReservationsScreen() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
 
-      // d'abord → on essaie de synchroniser ce qu'on a en attente
-      await syncReservations(user.userId);
+      // 1. Récupérer les réservations offline
+      const pendingOps = await loadPending(user.userId);
+      const offlineReservations = pendingOps
+        .filter((op) => op.type === "create")
+        .map((op) => ({
+          _id: op.id,
+          terrainId: op.payload.terrainId,
+          date: op.payload.date,
+          heure: op.payload.heure,
+          _offline: true, // marqueur pour l'UI
+        }));
 
-      // ensuite → on récupère la vérité depuis le backend
-      const list = await getReservationsByUser(user.userId);
-      setReservations(list);
+      // 2. Récupérer les réservations online (si possible)
+      let onlineReservations: Reservation[] = [];
+      try {
+        // On tente une sync avant de fetch
+        await syncReservations(user.userId);
+        onlineReservations = await getReservationsByUser(user.userId);
+      } catch (err) {
+        console.log("Impossible de charger les réservations online", err);
+        // Si erreur réseau, on garde au moins ce qu'on a déjà en cache si on en avait (optionnel)
+        // Ici on assume que si ça fail, on a juste pas de online
+      }
+
+      // 3. Fusionner : offline d'abord (ou trié par date, au choix)
+      // Ici on met tout dans une liste et on pourrait trier par date
+      const all = [...offlineReservations, ...onlineReservations];
+
+      // Tri par date (optionnel mais mieux)
+      all.sort((a, b) => {
+        const da = new Date(a.date + "T" + (a.heure?.split("h")[0] || "00") + ":00");
+        const db = new Date(b.date + "T" + (b.heure?.split("h")[0] || "00") + ":00");
+        return db.getTime() - da.getTime(); // plus récent en haut
+      });
+
+      setReservations(all);
     } catch (e) {
       console.log("Erreur chargement réservations", e);
     } finally {
@@ -60,12 +92,26 @@ export default function ReservationsScreen() {
     }
   }
 
-  // Chargement initial
+  // Chargement initial + écouteur réseau
   useEffect(() => {
+    let unsubscribe = () => { };
+
     (async () => {
       await loadTerrains();
       await loadReservations(false);
+
+      // Écouteur de changement de réseau
+      unsubscribe = NetInfo.addEventListener((state) => {
+        if (state.isConnected) {
+          console.log("Connexion rétablie : on sync et on recharge !");
+          loadReservations(false);
+        }
+      });
     })();
+
+    return () => {
+      unsubscribe();
+    };
   }, [user]);
 
   // Fonction pour retrouver le nom du terrain
@@ -131,11 +177,30 @@ export default function ReservationsScreen() {
                 padding: 12,
                 borderWidth: 1,
                 borderRadius: 8,
+                // Style grisé si offline
+                backgroundColor: item._offline ? "#f3f4f6" : "#ffffff",
+                borderColor: item._offline ? "#9ca3af" : "#000000",
+                opacity: item._offline ? 0.6 : 1,
               }}
             >
-              <Text style={{ fontWeight: "bold" }}>
-                {getTerrainName(item.terrainId)}
-              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ fontWeight: "bold" }}>
+                  {getTerrainName(item.terrainId)}
+                </Text>
+                {item._offline && (
+                  <Text
+                    style={{ fontSize: 12, color: "orange", fontWeight: "bold" }}
+                  >
+                    (En attente de sync)
+                  </Text>
+                )}
+              </View>
               <Text>Date : {item.date}</Text>
               <Text>Heure : {item.heure}</Text>
             </View>
