@@ -1,0 +1,27 @@
+# Étape 1 : Installer les dépendances
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copie uniquement des fichiers nécessaires pour installer les dépendances
+COPY package*.json ./
+
+# Installe seulement les dépendances utiles en production (plus léger)
+RUN npm ci --only=production
+
+# Étape 2 : Image finale (allégée)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copie uniquement les dépendances depuis l’étape builder
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copie le code source du projet
+COPY . .
+
+# Expose le port sur lequel l’API écoute (4000 pour easypadel)
+EXPOSE 4000
+
+# Démarre l’application en production
+CMD ["npm", "start"]
