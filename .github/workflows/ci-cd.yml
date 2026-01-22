@@ -66,7 +66,7 @@ jobs:
             docker pull ghcr.io/${{ secrets.GHCR_USERNAME }}/easypadel-api:latest
 
             echo "==> Mise à jour des conteneurs (backend + MongoDB)"
-            cd ~/Bureau/403-filrouge-HavolliEron
+            cd ~/Bureau/403-filrouge-Havolli-Eron
 
             # Arrêt des conteneurs
             docker compose -f docker-compose.prod.yml down
