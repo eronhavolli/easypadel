@@ -15,6 +15,7 @@ services:
     image: mongo:6
     container_name: easypadel-mongo
     network_mode: host
+    command: ["mongod", "--port", "27019"]
     restart: unless-stopped
 
 volumes:
