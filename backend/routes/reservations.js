@@ -97,6 +97,31 @@ router.get("/", async (req, res) => {
 });
 
 /**
+ * GET /api/reservations/:id
+ * -> Récupère UNE seule réservation par son ID
+ */
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Vérifier si l'ID est valide (format MongoDB)
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "ID invalide" });
+    }
+
+    const reservation = await Reservation.findById(id).lean();
+
+    if (!reservation) {
+      return res.status(404).json({ message: "Réservation non trouvée" });
+    }
+
+    return res.json(reservation);
+  } catch (e) {
+    console.error("Erreur GET /api/reservations/:id :", e);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+/**
  * GET /api/reservations/all
  * -> Réservé aux admins
  * Retourne : [{ _id, user, terrain, date, heure }]

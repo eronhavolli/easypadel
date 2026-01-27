@@ -20,15 +20,15 @@ router.get('/', async (req, res) => {
 
     const reservations = await Reservation.find({ terrainId, date });
 
-    const slots = heures.map((h, index) => {
-      const pris = reservations.some(r => r.heure === h);
-      return {
-        id: `${terrainId}`,           // ID UNIQUE par créneau
-        nom: `${terrain.nom}`,          // "Terrain 1 - 16h-17h"
-        heure: h,                              // heure simple
-        dispo: !pris,
-      };
-    });
+    // 3. Filtrer pour ne garder QUE les créneaux libres
+    const creneauxLibres = heures.filter(h => !reservations.some(r => r.heure === h));
+
+    // 4. SANS le champ "dispo"
+    const slots = creneauxLibres.map(h => ({
+      id: `${terrainId}`,
+      nom: `${terrain.nom}`,
+      heure: h
+    }));
 
     res.json(slots);
   } catch (err) {
