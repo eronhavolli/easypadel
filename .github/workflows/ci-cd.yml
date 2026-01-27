@@ -84,10 +84,11 @@ jobs:
             echo "==> Mise à jour des conteneurs (backend + MongoDB)"
             cd ~/Bureau/403-filrouge-Havolli-Eron
 
-            # Arrêt des conteneurs
-            docker compose -f docker-compose.prod.yml down
+            # Arrêt forcé des conteneurs avec sudo
+            echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker compose -f docker-compose.prod.yml down || true
+            echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker rm -f easypadel-api easypadel-mongo || true
 
-            # Relance avec la nouvelle image
-            docker compose -f docker-compose.prod.yml up -d
+            # Relance avec la nouvelle image (sans sudo si possible, sinon avec)
+            docker compose -f docker-compose.prod.yml up -d || echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker compose -f docker-compose.prod.yml up -d
 
             echo "✅ Déploiement backend terminé avec succès."
