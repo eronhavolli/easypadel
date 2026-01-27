@@ -50,6 +50,21 @@ jobs:
     runs-on: self-hosted
     needs: build_and_publish
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copier docker-compose.prod.yml vers le serveur
+        run: |
+          # Créer la clé privée temporaire pour SCP
+          echo "${{ secrets.SSH_PRIVATE_KEY_PROD }}" > private_key
+          chmod 600 private_key
+          
+          # Copier le fichier vers le serveur de prod
+          scp -o StrictHostKeyChecking=no -i private_key docker-compose.prod.yml ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }}:~/Bureau/403-filrouge-Havolli-Eron/docker-compose.prod.yml
+          
+          # Nettoyer la clé
+          rm private_key
+
       - name: Vérifier la connexion SSH
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} "echo '✅ SSH OK'"
 
