@@ -21,10 +21,10 @@ app.use('/api/terrains', terrainsRoute);
 app.use('/api/reservations', reservationsRoute);
 app.use('/api/creneaux', creneauxRoute); //test
 
-app.get('/', (_req, res) => res.send('API easypadel fonctionne test v1'));
+app.get('/', (_req, res) => res.send('API easypadel fonctionne test v2 test')); //test v2 
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 API prête sur http://0.0.0.0:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(` API prête sur http://0.0.0.0:${PORT}`));
 
 /**require('dotenv').config();
 const express = require('express');
