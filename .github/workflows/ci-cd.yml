@@ -65,10 +65,13 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY_PROD }}" > private_key
           chmod 600 private_key
           
-          # 3. Copier les fichiers vers le serveur de prod
-          scp -o StrictHostKeyChecking=no -i private_key docker-compose.prod.yml .env ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }}:~/Bureau/403-filrouge-Havolli-Eron/
+          # 3. Créer le dossier de destination s'il n'existe pas (Chemin absolu pour éviter les erreurs)
+          ssh -o StrictHostKeyChecking=no -i private_key ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} "mkdir -p /home/uha40/Bureau/403-filrouge-Havolli-Eron/"
+
+          # 4. Copier les fichiers vers le serveur de prod (Chemin absolu)
+          scp -o StrictHostKeyChecking=no -i private_key docker-compose.prod.yml .env ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }}:/home/uha40/Bureau/403-filrouge-Havolli-Eron/
           
-          # 4. Nettoyage
+          # 5. Nettoyage
           rm private_key .env
 
       - name: Vérifier la connexion SSH
