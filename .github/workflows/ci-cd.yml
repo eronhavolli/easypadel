@@ -53,17 +53,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Copier docker-compose.prod.yml vers le serveur
+      - name: Générer et copier les fichiers de config (.env et docker-compose)
         run: |
-          # Créer la clé privée temporaire pour SCP
+          # 1. Créer le fichier .env à partir des secrets GitHub
+          echo "NODE_ENV=${{ secrets.ENV_NODE_ENV }}" >> .env
+          echo "PORT=${{ secrets.ENV_PORT }}" >> .env
+          echo "MONGO_URI=${{ secrets.ENV_MONGO_URI }}" >> .env
+          echo "JWT_SECRET=${{ secrets.ENV_JWT_SECRET }}" >> .env
+
+          # 2. Créer la clé privée temporaire pour SCP
           echo "${{ secrets.SSH_PRIVATE_KEY_PROD }}" > private_key
           chmod 600 private_key
           
-          # Copier le fichier vers le serveur de prod
-          scp -o StrictHostKeyChecking=no -i private_key docker-compose.prod.yml ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }}:~/Bureau/403-filrouge-Havolli-Eron/docker-compose.prod.yml
+          # 3. Copier les fichiers vers le serveur de prod
+          scp -o StrictHostKeyChecking=no -i private_key docker-compose.prod.yml .env ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }}:~/Bureau/403-filrouge-Havolli-Eron/
           
-          # Nettoyer la clé
-          rm private_key
+          # 4. Nettoyage
+          rm private_key .env
 
       - name: Vérifier la connexion SSH
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} "echo '✅ SSH OK'"
