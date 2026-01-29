@@ -93,8 +93,20 @@ jobs:
             echo "==> Mise à jour des conteneurs (backend + MongoDB)"
             cd ~/Bureau/403-filrouge-Havolli-Eron
 
-            # Arrêt des conteneurs
-            docker compose -f docker-compose.prod.yml down
+            # Arrêt des conteneurs avec sudo pour éviter les erreurs de permissions
+            echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker compose -f docker-compose.prod.yml down || {
+              echo "⚠️  docker compose down a échoué, tentative de kill forcé..."
+              # Si ça échoue, on force le kill des conteneurs
+              CONTAINER_IDS=$(docker ps -q --filter "name=easypadel")
+              if [ ! -z "$CONTAINER_IDS" ]; then
+                for CID in $CONTAINER_IDS; do
+                  PID=$(docker inspect $CID --format '{{.State.Pid}}')
+                  echo "Killing container $CID (PID: $PID)"
+                  echo "${{ secrets.SSH_PASSWORD }}" | sudo -S kill -9 $PID 2>/dev/null || true
+                done
+                docker rm -f $CONTAINER_IDS 2>/dev/null || true
+              fi
+            }
 
             # Relance avec la nouvelle image
             docker compose -f docker-compose.prod.yml up -d
