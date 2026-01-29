@@ -94,7 +94,7 @@ jobs:
             cd ~/Bureau/403-filrouge-Havolli-Eron
 
             # Arrêt des conteneurs avec sudo pour éviter les erreurs de permissions
-            echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker compose -f docker-compose.prod.yml down || {
+            printf '%s\n' "${{ secrets.SSH_PASSWORD }}" | sudo -S docker compose -f docker-compose.prod.yml down || {
               echo "⚠️  docker compose down a échoué, tentative de kill forcé..."
               # Si ça échoue, on force le kill des conteneurs
               CONTAINER_IDS=$(docker ps -q --filter "name=easypadel")
@@ -102,9 +102,9 @@ jobs:
                 for CID in $CONTAINER_IDS; do
                   PID=$(docker inspect $CID --format '{{.State.Pid}}')
                   echo "Killing container $CID (PID: $PID)"
-                  echo "${{ secrets.SSH_PASSWORD }}" | sudo -S kill -9 $PID 2>/dev/null || true
+                  printf '%s\n' "${{ secrets.SSH_PASSWORD }}" | sudo -S kill -9 $PID 2>/dev/null || true
                 done
-                docker rm -f $CONTAINER_IDS 2>/dev/null || true
+                printf '%s\n' "${{ secrets.SSH_PASSWORD }}" | sudo -S docker rm -f $CONTAINER_IDS 2>/dev/null || true
               fi
             }
 
