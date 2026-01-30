@@ -22,7 +22,7 @@ app.use('/api/terrains', terrainsRoute);
 app.use('/api/reservations', reservationsRoute);
 app.use('/api/creneaux', creneauxRoute); //test
 
-app.get('/', (_req, res) => res.send('API easypadel v1.5 TEST'));
+app.get('/', (_req, res) => res.send('API easypadel v1.3 TEST'));
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, '0.0.0.0', () => console.log(` API prête sur http://0.0.0.0:${PORT}`));
