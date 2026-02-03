@@ -1,4 +1,4 @@
-# Étape 1 : Préparation (Builder)
+# Étape 1 : Builder (Préparation)
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -6,23 +6,29 @@ WORKDIR /app
 # Copie des fichiers de dépendances
 COPY package*.json ./
 
-# Installation des dépendances de production uniquement
-RUN npm ci --only=production
+# Installation complète (pour avoir les outils système comme cp/mkdir si besoin)
+RUN npm install
 
-# Copie du reste du code source DANS le stage de build
+# Copie de tout le code source
 COPY . .
+
+# Création du dossier "dist" via le script npm
+RUN npm run build
 
 # Étape 2 : Image finale de production
 FROM node:20-alpine
 
 WORKDIR /app
 
-# On copie TOUT le dossier de l'application (sources + node_modules) depuis le builder
-# Cela respecte la consigne : pas de copie directe des sources depuis l'hôte dans le stage final
-COPY --from=builder /app ./
+# Copier les dépendances de production uniquement
+COPY package*.json ./
+RUN npm ci --only=production
 
-# Expose le port sur lequel l’API écoute (4000 pour easypadel)
+# Copie UNIQUEMENT le dossier dist construit ("l'artefact")
+COPY --from=builder /app/dist ./dist
+
+# Expose le port
 EXPOSE 4000
 
-# Démarre l’application en production
-CMD ["npm", "start"]
+# Lance le serveur depuis le dossier dist
+CMD ["node", "dist/server.js"]
